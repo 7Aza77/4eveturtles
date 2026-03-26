@@ -29,7 +29,28 @@ import (
 
 func main() {
 	// 1. Подключаемся к БД
-	db, err := repository.NewPostgresDB("localhost", "5432", "user", "password", "goevent")
+	dbHost := os.Getenv("DB_HOST")
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
+	dbPort := os.Getenv("DB_PORT")
+	if dbPort == "" {
+		dbPort = "5432"
+	}
+	dbUser := os.Getenv("DB_USER")
+	if dbUser == "" {
+		dbUser = "user"
+	}
+	dbPassword := os.Getenv("DB_PASSWORD")
+	if dbPassword == "" {
+		dbPassword = "password"
+	}
+	dbName := os.Getenv("DB_NAME")
+	if dbName == "" {
+		dbName = "goevent"
+	}
+
+	db, err := repository.NewPostgresDB(dbHost, dbPort, dbUser, dbPassword, dbName)
 	if err != nil {
 		log.Fatalf("Ошибка подключения к БД: %s", err.Error())
 	}
@@ -40,7 +61,12 @@ func main() {
 	eventRepo := repository.NewEventPostgres(db)
 	regRepo := repository.NewRegistrationPostgres(db)
 
-	tokenManager, err := auth.NewManager("super-secret-key") // В реальности берем из ENV
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "super-secret-key"
+	}
+
+	tokenManager, err := auth.NewManager(jwtSecret)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,8 +76,17 @@ func main() {
 	regUseCase := usecase.NewRegistration(regRepo, eventRepo)
 
 	// 3. Redis для Rate Limiting
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		redisHost = "localhost"
+	}
+	redisPort := os.Getenv("REDIS_PORT")
+	if redisPort == "" {
+		redisPort = "6379"
+	}
+
 	rdb := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379", // В реальности из ENV
+		Addr: redisHost + ":" + redisPort,
 	})
 
 	h := handler.NewHandler(authUseCase, eventUseCase, regUseCase, tokenManager)

@@ -2,25 +2,38 @@ package repository
 
 import (
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // Драйвер для Postgres
 )
 
 func NewPostgresDB(host, port, user, password, dbname string) (*sqlx.DB, error) {
-	// Строка подключения (DSN)
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
-	db, err := sqlx.Open("postgres", dsn)
-	if err != nil {
-		return nil, err
+	var db *sqlx.DB
+	var err error
+
+	// Повторные попытки подключения (для Docker Compose)
+	for i := 0; i < 10; i++ {
+		db, err = sqlx.Open("postgres", dsn)
+		if err != nil {
+			log.Printf("Попытка %d: ошибка открытия БД: %s", i+1, err.Error())
+		} else {
+			err = db.Ping()
+			if err == nil {
+				log.Println("Успешное подключение к БД!")
+				break
+			}
+			log.Printf("Попытка %d: БД еще не готова: %s", i+1, err.Error())
+		}
+		time.Sleep(2 * time.Second)
 	}
 
-	// Проверяем соединение
-	err = db.Ping()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("не удалось подключиться к БД после 10 попыток: %w", err)
 	}
 
 	// Создаем таблицы, если они не существуют (для упрощения защиты)

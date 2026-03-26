@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"goevent/pkg/auth"
 	"net/http"
 	"strings"
