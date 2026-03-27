@@ -28,12 +28,13 @@ func (h *Handler) userIdentity(tokenManager auth.TokenManager) gin.HandlerFunc {
 			return
 		}
 
-		if len(headerParts[1]) == 0 {
+		token := headerParts[1]
+		if token == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token is empty"})
 			return
 		}
 
-		userId, role, err := tokenManager.Parse(headerParts[1])
+		userId, role, err := tokenManager.Parse(token)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
@@ -41,6 +42,7 @@ func (h *Handler) userIdentity(tokenManager auth.TokenManager) gin.HandlerFunc {
 
 		c.Set(userCtx, userId)
 		c.Set(roleCtx, role)
+		c.Next()
 	}
 }
 
@@ -52,14 +54,18 @@ func (h *Handler) roleRestriction(roles ...string) gin.HandlerFunc {
 			return
 		}
 
-		roleStr := role.(string)
-		for _, r := range roles {
-			if r == roleStr {
+		roleStr, ok := role.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid role type"})
+			return
+		}
+
+		for _, allowedRole := range roles {
+			if roleStr == allowedRole {
 				c.Next()
 				return
 			}
 		}
-
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "permission denied"})
 	}
 }
