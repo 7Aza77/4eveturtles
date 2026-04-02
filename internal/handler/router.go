@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"goevent/internal/entity"
 	"goevent/internal/usecase"
 	"goevent/pkg/auth"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	_ "goevent/docs"
+
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -21,7 +23,12 @@ type Handler struct {
 	tokenManager        auth.TokenManager
 }
 
-func NewHandler(authUseCase usecase.AuthUseCase, eventUseCase usecase.EventUseCase, regUseCase usecase.RegistrationUseCase, tokenManager auth.TokenManager) *Handler {
+func NewHandler(
+	authUseCase usecase.AuthUseCase,
+	eventUseCase usecase.EventUseCase,
+	regUseCase usecase.RegistrationUseCase,
+	tokenManager auth.TokenManager,
+) *Handler {
 	return &Handler{
 		authHandler:         NewAuthHandler(authUseCase),
 		eventHandler:        NewEventHandler(eventUseCase),
@@ -30,45 +37,60 @@ func NewHandler(authUseCase usecase.AuthUseCase, eventUseCase usecase.EventUseCa
 	}
 }
 
-// InitRouter настраивает все пути (endpoints) нашего API
 func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
-	r := gin.Default() // Создаем стандартный сервер Gin
+	r := gin.Default()
 
-	// Middleware
-	r.Use(h.rateLimit(rdb, 100, time.Minute)) // 100 запросов в минуту
+	r.Use(h.rateLimit(rdb, 100, time.Minute))
 
-	// Простая проверка, что сервер жив
 	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
 
-	// Swagger
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	auth := r.Group("/auth")
+	authGroup := r.Group("/auth")
 	{
-		auth.POST("/sign-up", h.authHandler.signUp)
-		auth.POST("/sign-in", h.authHandler.signIn)
+		authGroup.POST("/sign-up", h.authHandler.signUp)
+		authGroup.POST("/sign-in", h.authHandler.signIn)
 	}
 
-	// Группа для API мероприятий
 	events := r.Group("/api/v1/events")
 	{
 		events.GET("/", h.eventHandler.list)
 		events.GET("/:id", h.eventHandler.getByID)
 
-		// Защищенные маршруты
-		protected := events.Group("/", h.userIdentity(h.tokenManager))
+		authorized := events.Group("/")
+		authorized.Use(h.userIdentity(h.tokenManager))
 		{
-			protected.POST("/", h.eventHandler.create)
-			protected.PUT("/:id", h.eventHandler.update)
-			protected.DELETE("/:id", h.eventHandler.delete)
+			authorized.POST(
+				"/",
+				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator)),
+				h.eventHandler.create,
+			)
 
-			// Регистрация
-			protected.POST("/:id/register", h.registrationHandler.register)
-			protected.DELETE("/:id/unregister", h.registrationHandler.cancel)
+			authorized.PUT(
+				"/:id",
+				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator)),
+				h.eventHandler.update,
+			)
+
+			authorized.DELETE(
+				"/:id",
+				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator)),
+				h.eventHandler.delete,
+			)
+
+			authorized.POST(
+				"/:id/register",
+				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator), string(entity.RoleStudent)),
+				h.registrationHandler.register,
+			)
+
+			authorized.DELETE(
+				"/:id/unregister",
+				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator), string(entity.RoleStudent)),
+				h.registrationHandler.cancel,
+			)
 		}
 	}
 
