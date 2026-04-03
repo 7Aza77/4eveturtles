@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"goevent/internal/config"
 	"goevent/internal/handler"
 	"goevent/internal/repository"
 	"goevent/internal/usecase"
 	"goevent/pkg/auth"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -28,93 +29,84 @@ import (
 // @name Authorization
 
 func main() {
-	// 1. Подключаемся к БД
-	dbHost := os.Getenv("DB_HOST")
-	if dbHost == "" {
-		dbHost = "localhost"
-	}
-	dbPort := os.Getenv("DB_PORT")
-	if dbPort == "" {
-		dbPort = "5432"
-	}
-	dbUser := os.Getenv("DB_USER")
-	if dbUser == "" {
-		dbUser = "user"
-	}
-	dbPassword := os.Getenv("DB_PASSWORD")
-	if dbPassword == "" {
-		dbPassword = "password"
-	}
-	dbName := os.Getenv("DB_NAME")
-	if dbName == "" {
-		dbName = "goevent"
-	}
+	// 1. Загрузка конфигурации
+	cfg := config.MustLoad()
 
-	db, err := repository.NewPostgresDB(dbHost, dbPort, dbUser, dbPassword, dbName)
+	// 2. Инициализация логгера (slog)
+	var log *slog.Logger
+	if cfg.Env == "local" {
+		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	} else {
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	}
+	slog.SetDefault(log)
+
+	log.Info("starting goevent application", slog.String("env", cfg.Env))
+
+	// 3. Подключение к БД
+	db, err := repository.NewPostgresDB(
+		cfg.Postgres.Host,
+		cfg.Postgres.Port,
+		cfg.Postgres.User,
+		cfg.Postgres.Password,
+		cfg.Postgres.DBName,
+	)
 	if err != nil {
-		log.Fatalf("Ошибка подключения к БД: %s", err.Error())
+		log.Error("failed to connect to db", "error", err)
+		os.Exit(1)
 	}
-	log.Println("Успешное подключение к базе данных!")
+	log.Debug("database connected successfully")
 
-	// 2. Инициализация зависимостей (DI)
+	// 4. Инициализация зависимостей (DI)
 	authRepo := repository.NewAuthPostgres(db)
 	eventRepo := repository.NewEventPostgres(db)
 	regRepo := repository.NewRegistrationPostgres(db)
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		jwtSecret = "super-secret-key"
+	tokenManager, err := auth.NewManager(cfg.Auth.JWTSecret)
+	if err != nil {
+		log.Error("failed to init token manager", "error", err)
+		os.Exit(1)
 	}
 
-	tokenManager, err := auth.NewManager(jwtSecret)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// 5. Redis для Rate Limiting и Кэширования
+	rdb := redis.NewClient(&redis.Options{
+		Addr: cfg.Redis.Host + ":" + cfg.Redis.Port,
+	})
 
 	authUseCase := usecase.NewAuth(authRepo, tokenManager, time.Hour*12)
-	eventUseCase := usecase.NewEvent(eventRepo)
+	eventUseCase := usecase.NewEvent(eventRepo, rdb)
 	regUseCase := usecase.NewRegistration(regRepo, eventRepo)
-
-	// 3. Redis для Rate Limiting
-	redisHost := os.Getenv("REDIS_HOST")
-	if redisHost == "" {
-		redisHost = "localhost"
-	}
-	redisPort := os.Getenv("REDIS_PORT")
-	if redisPort == "" {
-		redisPort = "6379"
-	}
-
-	rdb := redis.NewClient(&redis.Options{
-		Addr: redisHost + ":" + redisPort,
-	})
 
 	h := handler.NewHandler(authUseCase, eventUseCase, regUseCase, tokenManager)
 
-	// 4. Запуск сервера
+	// 6. Запуск сервера
 	r := h.InitRouter(rdb)
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    cfg.HTTPServer.Address,
 		Handler: r,
 	}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+			log.Error("listen and serve error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
-	// 4. Graceful Shutdown
+	log.Info("server started", slog.String("address", cfg.HTTPServer.Address))
+
+	// 7. Graceful Shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutting down server...")
+	log.Info("shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+		log.Error("server forced to shutdown", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("Server exiting")
+	log.Info("server exiting")
 }

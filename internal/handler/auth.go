@@ -2,9 +2,11 @@ package handler
 
 import (
 	"goevent/internal/usecase"
+	"goevent/pkg/lib/api/response"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type AuthHandler struct {
@@ -32,17 +34,24 @@ type signUpInput struct {
 func (h *AuthHandler) signUp(c *gin.Context) {
 	var input signUpInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+		if errs, ok := err.(validator.ValidationErrors); ok {
+			c.JSON(http.StatusBadRequest, response.ValidationError(errs))
+			return
+		}
+		c.JSON(http.StatusBadRequest, response.Error("invalid input"))
 		return
 	}
 
 	id, err := h.useCase.Register(c.Request.Context(), input.Email, input.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error("failed to create user"))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"id": id})
+	c.JSON(http.StatusOK, response.Response{
+		Status: response.StatusOk,
+		Data:   gin.H{"id": id},
+	})
 }
 
 type signInInput struct {
@@ -62,15 +71,22 @@ type signInInput struct {
 func (h *AuthHandler) signIn(c *gin.Context) {
 	var input signInInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+		if errs, ok := err.(validator.ValidationErrors); ok {
+			c.JSON(http.StatusBadRequest, response.ValidationError(errs))
+			return
+		}
+		c.JSON(http.StatusBadRequest, response.Error("invalid input"))
 		return
 	}
 
 	token, err := h.useCase.Login(c.Request.Context(), input.Email, input.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnauthorized, response.Error("invalid credentials"))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusOK, response.Response{
+		Status: response.StatusOk,
+		Data:   gin.H{"token": token},
+	})
 }

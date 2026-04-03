@@ -1,0 +1,14 @@
+env: "local"
+http_server:
+  address: ":8080"
+postgres:
+  host: "db"
+  port: "5432"
+  user: "postgres"
+  password: "root"
+  db_name: "goevent"
+redis:
+  host: "redis"
+  port: "6379"
+auth:
+  jwt_secret: "super-secret-key"

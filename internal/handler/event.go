@@ -4,6 +4,7 @@ import (
 	"goevent/internal/entity"
 	"goevent/internal/repository"
 	"goevent/internal/usecase"
+	"goevent/pkg/lib/api/response"
 	"net/http"
 	"strconv"
 	"time"
@@ -94,34 +95,50 @@ func (h *EventHandler) list(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "id")
 	order := c.DefaultQuery("order", "asc")
 
+	// Новые фильтры
+	title := c.Query("title")
+	location := c.Query("location")
+	fromDate := c.Query("from_date")
+	toDate := c.Query("to_date")
+
 	events, err := h.useCase.List(c.Request.Context(), repository.EventFilter{
-		Limit:  limit,
-		Offset: offset,
-		SortBy: sortBy,
-		Order:  order,
+		Limit:    limit,
+		Offset:   offset,
+		SortBy:   sortBy,
+		Order:    order,
+		Title:    title,
+		Location: location,
+		FromDate: fromDate,
+		ToDate:   toDate,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.Error("failed to get events list"))
 		return
 	}
 
-	c.JSON(http.StatusOK, events)
+	c.JSON(http.StatusOK, response.Response{
+		Status: response.StatusOk,
+		Data:   events,
+	})
 }
 
 func (h *EventHandler) getByID(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, response.Error("invalid id"))
 		return
 	}
 
 	event, err := h.useCase.GetByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		c.JSON(http.StatusNotFound, response.Error("event not found"))
 		return
 	}
 
-	c.JSON(http.StatusOK, event)
+	c.JSON(http.StatusOK, response.Response{
+		Status: response.StatusOk,
+		Data:   event,
+	})
 }
 
 func (h *EventHandler) update(c *gin.Context) {
