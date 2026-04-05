@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Наша база данных
+  db:
+    image: postgres:15-alpine
+    container_name: goevent_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: goevent
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Наш Go-сервис
+  app:
+    build: .
+    container_name: goevent_app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: goevent
+      JWT_SECRET: super-secret-key
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+  # Redis для кэширования и Rate Limiting
+  redis:
+    image: redis:7-alpine
+    container_name: goevent_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
