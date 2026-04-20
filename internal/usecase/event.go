@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"goevent/internal/entity"
 	"goevent/internal/repository"
@@ -28,10 +29,27 @@ func NewEvent(repo repository.EventRepository, rdb *redis.Client) *Event {
 	return &Event{repo: repo, rdb: rdb}
 }
 
+func (u *Event) invalidateListCache(ctx context.Context) {
+	if u.rdb == nil {
+		return
+	}
+	keys, _ := u.rdb.Keys(ctx, "events:list:*").Result()
+	if len(keys) > 0 {
+		u.rdb.Del(ctx, keys...)
+	}
+}
+
 func (u *Event) Create(ctx context.Context, event entity.Event) (int64, error) {
+	if event.MaxParticipants < 0 {
+		return 0, errors.New("max_participants cannot be negative")
+	}
+	if event.Date.Before(time.Now()) {
+		return 0, errors.New("event date must be in the future")
+	}
+
 	id, err := u.repo.Create(ctx, event)
-	if err == nil && u.rdb != nil {
-		u.rdb.Del(ctx, "events:list:*")
+	if err == nil {
+		u.invalidateListCache(ctx)
 	}
 	return id, err
 }
@@ -63,8 +81,8 @@ func (u *Event) List(ctx context.Context, filter repository.EventFilter) ([]enti
 		filter.Limit = 10
 	}
 
-	// Кэшируем только базовый список без сложных фильтров для простоты
-	if u.rdb != nil && filter.Limit == 10 && filter.Offset == 0 {
+	if u.rdb != nil && filter.Limit == 10 && filter.Offset == 0 &&
+		filter.Title == "" && filter.Location == "" && filter.FromDate == "" && filter.ToDate == "" {
 		val, err := u.rdb.Get(ctx, "events:list:default").Result()
 		if err == nil {
 			var events []entity.Event
@@ -75,7 +93,8 @@ func (u *Event) List(ctx context.Context, filter repository.EventFilter) ([]enti
 	}
 
 	events, err := u.repo.List(ctx, filter)
-	if err == nil && u.rdb != nil && filter.Limit == 10 && filter.Offset == 0 {
+	if err == nil && u.rdb != nil && filter.Limit == 10 && filter.Offset == 0 &&
+		filter.Title == "" && filter.Location == "" && filter.FromDate == "" && filter.ToDate == "" {
 		data, _ := json.Marshal(events)
 		u.rdb.Set(ctx, "events:list:default", data, time.Minute*5)
 	}
@@ -86,16 +105,17 @@ func (u *Event) List(ctx context.Context, filter repository.EventFilter) ([]enti
 func (u *Event) Update(ctx context.Context, userId int64, event entity.Event) error {
 	oldEvent, err := u.repo.GetByID(ctx, event.ID)
 	if err != nil {
-		return err
+		return errors.New("event not found")
 	}
 
 	if oldEvent.CreatorID != userId {
-		// return fmt.Errorf("access denied")
+		return errors.New("access denied: only the creator can update the event")
 	}
 
 	err = u.repo.Update(ctx, event)
 	if err == nil && u.rdb != nil {
-		u.rdb.Del(ctx, fmt.Sprintf("event:%d", event.ID), "events:list:*")
+		u.rdb.Del(ctx, fmt.Sprintf("event:%d", event.ID))
+		u.invalidateListCache(ctx)
 	}
 	return err
 }
@@ -103,16 +123,17 @@ func (u *Event) Update(ctx context.Context, userId int64, event entity.Event) er
 func (u *Event) Delete(ctx context.Context, userId int64, eventId int64) error {
 	oldEvent, err := u.repo.GetByID(ctx, eventId)
 	if err != nil {
-		return err
+		return errors.New("event not found")
 	}
 
 	if oldEvent.CreatorID != userId {
-		// return fmt.Errorf("access denied")
+		return errors.New("access denied: only the creator can delete the event")
 	}
 
 	err = u.repo.Delete(ctx, eventId)
 	if err == nil && u.rdb != nil {
-		u.rdb.Del(ctx, fmt.Sprintf("event:%d", eventId), "events:list:*")
+		u.rdb.Del(ctx, fmt.Sprintf("event:%d", eventId))
+		u.invalidateListCache(ctx)
 	}
 	return err
 }

@@ -18,16 +18,21 @@ type EventRepository interface {
 }
 
 type EventFilter struct {
-	Limit  int
-	Offset int
-	SortBy string
-	Order  string // ASC or DESC
-
-	// Фильтры
+	Limit    int
+	Offset   int
+	SortBy   string
+	Order    string
 	Title    string
 	Location string
 	FromDate string
 	ToDate   string
+}
+
+var allowedSortColumns = map[string]bool{
+	"id":       true,
+	"title":    true,
+	"date":     true,
+	"location": true,
 }
 
 type EventPostgres struct {
@@ -40,9 +45,12 @@ func NewEventPostgres(db *sqlx.DB) *EventPostgres {
 
 func (r *EventPostgres) Create(ctx context.Context, event entity.Event) (int64, error) {
 	var id int64
-	query := `INSERT INTO events (title, description, date, location, max_participants, creator_id) 
+	query := `INSERT INTO events (title, description, date, location, max_participants, creator_id)
 			  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	err := r.db.QueryRowContext(ctx, query, event.Title, event.Description, event.Date, event.Location, event.MaxParticipants, event.CreatorID).Scan(&id)
+	err := r.db.QueryRowContext(ctx, query,
+		event.Title, event.Description, event.Date,
+		event.Location, event.MaxParticipants, event.CreatorID,
+	).Scan(&id)
 	return id, err
 }
 
@@ -58,7 +66,6 @@ func (r *EventPostgres) List(ctx context.Context, filter EventFilter) ([]entity.
 	var args []interface{}
 	var conditions []string
 
-	// Построение WHERE
 	if filter.Title != "" {
 		args = append(args, "%"+filter.Title+"%")
 		conditions = append(conditions, fmt.Sprintf("title ILIKE $%d", len(args)))
@@ -81,19 +88,17 @@ func (r *EventPostgres) List(ctx context.Context, filter EventFilter) ([]entity.
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	// Сортировка
+	sortBy := "id"
+	if allowedSortColumns[filter.SortBy] {
+		sortBy = filter.SortBy
+	}
+
 	order := "ASC"
 	if strings.ToUpper(filter.Order) == "DESC" {
 		order = "DESC"
 	}
-	sortBy := "id"
-	if filter.SortBy != "" {
-		// Здесь нужно быть осторожным с инъекциями имен колонок, но пока ограничим
-		sortBy = filter.SortBy 
-	}
 	query += fmt.Sprintf(" ORDER BY %s %s", sortBy, order)
 
-	// Пагинация
 	args = append(args, filter.Limit, filter.Offset)
 	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)-1, len(args))
 
@@ -102,9 +107,12 @@ func (r *EventPostgres) List(ctx context.Context, filter EventFilter) ([]entity.
 }
 
 func (r *EventPostgres) Update(ctx context.Context, event entity.Event) error {
-	query := `UPDATE events SET title=$1, description=$2, date=$3, location=$4, max_participants=$5, updated_at=CURRENT_TIMESTAMP 
+	query := `UPDATE events SET title=$1, description=$2, date=$3, location=$4, max_participants=$5, updated_at=CURRENT_TIMESTAMP
 			  WHERE id=$6`
-	_, err := r.db.ExecContext(ctx, query, event.Title, event.Description, event.Date, event.Location, event.MaxParticipants, event.ID)
+	_, err := r.db.ExecContext(ctx, query,
+		event.Title, event.Description, event.Date,
+		event.Location, event.MaxParticipants, event.ID,
+	)
 	return err
 }
 

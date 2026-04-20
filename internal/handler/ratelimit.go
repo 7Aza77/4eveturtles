@@ -11,17 +11,22 @@ import (
 
 func (h *Handler) rateLimit(rdb *redis.Client, limit int, window time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if rdb == nil {
+			c.Next()
+			return
+		}
+
 		key := "rate_limit:" + c.ClientIP()
 		ctx := context.Background()
 
 		count, err := rdb.Get(ctx, key).Int()
 		if err != nil && err != redis.Nil {
-			c.Next() // В случае ошибки редиса пропускаем (fail-open)
+			c.Next()
 			return
 		}
 
 		if count >= limit {
-			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "too many requests"})
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "too many requests, please slow down"})
 			return
 		}
 

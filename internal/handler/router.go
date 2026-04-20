@@ -38,12 +38,26 @@ func NewHandler(
 }
 
 func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
-	r := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(gin.Logger())
 
 	r.Use(h.rateLimit(rdb, 100, time.Minute))
 
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
+	})
+
 	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": "pong"})
 	})
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -67,25 +81,21 @@ func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
 				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator)),
 				h.eventHandler.create,
 			)
-
 			authorized.PUT(
 				"/:id",
 				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator)),
 				h.eventHandler.update,
 			)
-
 			authorized.DELETE(
 				"/:id",
 				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator)),
 				h.eventHandler.delete,
 			)
-
 			authorized.POST(
 				"/:id/register",
 				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator), string(entity.RoleStudent)),
 				h.registrationHandler.register,
 			)
-
 			authorized.DELETE(
 				"/:id/unregister",
 				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator), string(entity.RoleStudent)),

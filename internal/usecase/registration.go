@@ -24,7 +24,6 @@ func NewRegistration(repo repository.RegistrationRepository, eventRepo repositor
 }
 
 func (u *Registration) Register(ctx context.Context, userId, eventId int64) error {
-	// 1. Проверяем существование события и лимит мест
 	event, err := u.eventRepo.GetByID(ctx, eventId)
 	if err != nil {
 		return errors.New("event not found")
@@ -35,13 +34,11 @@ func (u *Registration) Register(ctx context.Context, userId, eventId int64) erro
 		if err != nil {
 			return err
 		}
-
 		if count >= event.MaxParticipants {
 			return errors.New("event is full")
 		}
 	}
 
-	// 2. Регистрируем
 	return u.repo.Register(ctx, userId, eventId)
 }
 
