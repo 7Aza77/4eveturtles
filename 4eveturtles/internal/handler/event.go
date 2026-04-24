@@ -2,7 +2,6 @@ package handler
 
 import (
 	"goevent/internal/entity"
-	"goevent/internal/metrics"
 	"goevent/internal/repository"
 	"goevent/internal/usecase"
 	"goevent/pkg/lib/api/response"
@@ -73,7 +72,6 @@ func (h *EventHandler) create(c *gin.Context) {
 		return
 	}
 
-	metrics.EventsCreatedTotal.Inc()
 	c.JSON(http.StatusOK, response.Response{
 		Status: response.StatusOk,
 		Data:   gin.H{"id": id},
@@ -164,17 +162,6 @@ func (h *EventHandler) update(c *gin.Context) {
 		return
 	}
 
-	roleRaw, ok := c.Get(roleCtx)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, response.Error("role not found"))
-		return
-	}
-	role, ok := roleRaw.(string)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, response.Error("invalid role"))
-		return
-	}
-
 	event := entity.Event{
 		ID:              id,
 		Title:           input.Title,
@@ -184,7 +171,7 @@ func (h *EventHandler) update(c *gin.Context) {
 		MaxParticipants: input.MaxParticipants,
 	}
 
-	if err := h.useCase.Update(c.Request.Context(), userId, role, event); err != nil {
+	if err := h.useCase.Update(c.Request.Context(), userId, event); err != nil {
 		c.JSON(http.StatusForbidden, response.Error(err.Error()))
 		return
 	}
@@ -210,22 +197,10 @@ func (h *EventHandler) delete(c *gin.Context) {
 		return
 	}
 
-	roleRaw, ok := c.Get(roleCtx)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, response.Error("role not found"))
-		return
-	}
-	role, ok := roleRaw.(string)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, response.Error("invalid role"))
-		return
-	}
-
-	if err := h.useCase.Delete(c.Request.Context(), userId, role, id); err != nil {
+	if err := h.useCase.Delete(c.Request.Context(), userId, id); err != nil {
 		c.JSON(http.StatusForbidden, response.Error(err.Error()))
 		return
 	}
 
-	metrics.EventsDeletedTotal.Inc()
 	c.JSON(http.StatusOK, response.OK())
 }

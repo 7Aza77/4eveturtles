@@ -6,11 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"goevent/internal/entity"
-	"goevent/internal/metrics"
 	"goevent/internal/repository"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -18,8 +16,8 @@ type EventUseCase interface {
 	Create(ctx context.Context, event entity.Event) (int64, error)
 	GetByID(ctx context.Context, id int64) (entity.Event, error)
 	List(ctx context.Context, filter repository.EventFilter) ([]entity.Event, error)
-	Update(ctx context.Context, userId int64, role string, event entity.Event) error
-	Delete(ctx context.Context, userId int64, role string, eventId int64) error
+	Update(ctx context.Context, userId int64, event entity.Event) error
+	Delete(ctx context.Context, userId int64, eventId int64) error
 }
 
 type Event struct {
@@ -64,11 +62,8 @@ func (u *Event) GetByID(ctx context.Context, id int64) (entity.Event, error) {
 		if err == nil {
 			var event entity.Event
 			if err := json.Unmarshal([]byte(val), &event); err == nil {
-				metrics.CacheHitsTotal.With(prometheus.Labels{"key_type": "event"}).Inc()
 				return event, nil
 			}
-		} else if err == redis.Nil {
-			metrics.CacheMissesTotal.With(prometheus.Labels{"key_type": "event"}).Inc()
 		}
 	}
 
@@ -92,11 +87,8 @@ func (u *Event) List(ctx context.Context, filter repository.EventFilter) ([]enti
 		if err == nil {
 			var events []entity.Event
 			if err := json.Unmarshal([]byte(val), &events); err == nil {
-				metrics.CacheHitsTotal.With(prometheus.Labels{"key_type": "events_list"}).Inc()
 				return events, nil
 			}
-		} else if err == redis.Nil {
-			metrics.CacheMissesTotal.With(prometheus.Labels{"key_type": "events_list"}).Inc()
 		}
 	}
 
@@ -110,13 +102,13 @@ func (u *Event) List(ctx context.Context, filter repository.EventFilter) ([]enti
 	return events, err
 }
 
-func (u *Event) Update(ctx context.Context, userId int64, role string, event entity.Event) error {
+func (u *Event) Update(ctx context.Context, userId int64, event entity.Event) error {
 	oldEvent, err := u.repo.GetByID(ctx, event.ID)
 	if err != nil {
 		return errors.New("event not found")
 	}
 
-	if oldEvent.CreatorID != userId && role != string(entity.RoleAdmin) && role != string(entity.RoleModerator) {
+	if oldEvent.CreatorID != userId {
 		return errors.New("access denied: only the creator can update the event")
 	}
 
@@ -128,13 +120,13 @@ func (u *Event) Update(ctx context.Context, userId int64, role string, event ent
 	return err
 }
 
-func (u *Event) Delete(ctx context.Context, userId int64, role string, eventId int64) error {
+func (u *Event) Delete(ctx context.Context, userId int64, eventId int64) error {
 	oldEvent, err := u.repo.GetByID(ctx, eventId)
 	if err != nil {
 		return errors.New("event not found")
 	}
 
-	if oldEvent.CreatorID != userId && role != string(entity.RoleAdmin) && role != string(entity.RoleModerator) {
+	if oldEvent.CreatorID != userId {
 		return errors.New("access denied: only the creator can delete the event")
 	}
 

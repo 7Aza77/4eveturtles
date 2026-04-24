@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"goevent/internal/metrics"
 	"goevent/internal/usecase"
 	"goevent/pkg/lib/api/response"
 	"net/http"
@@ -68,7 +67,6 @@ func (h *AuthHandler) signIn(c *gin.Context) {
 		return
 	}
 
-	metrics.ActiveUsersTotal.Inc()
 	c.JSON(http.StatusOK, response.Response{
 		Status: response.StatusOk,
 		Data:   gin.H{"token": token},

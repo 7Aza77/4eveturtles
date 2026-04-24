@@ -1,14 +1,12 @@
 package handler
 
 import (
-	"goevent/internal/metrics"
 	"goevent/internal/usecase"
 	"goevent/pkg/lib/api/response"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type RegistrationHandler struct {
@@ -43,7 +41,6 @@ func (h *RegistrationHandler) register(c *gin.Context) {
 		return
 	}
 
-	metrics.RegistrationsTotal.With(prometheus.Labels{"action": "register"}).Inc()
 	c.JSON(http.StatusOK, response.OK())
 }
 
@@ -71,6 +68,5 @@ func (h *RegistrationHandler) cancel(c *gin.Context) {
 		return
 	}
 
-	metrics.RegistrationsTotal.With(prometheus.Labels{"action": "cancel"}).Inc()
 	c.JSON(http.StatusOK, response.OK())
 }

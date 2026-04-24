@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"goevent/internal/entity"
-	"goevent/internal/metrics"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type EventRepository interface {
@@ -53,7 +51,6 @@ func (r *EventPostgres) Create(ctx context.Context, event entity.Event) (int64, 
 		event.Title, event.Description, event.Date,
 		event.Location, event.MaxParticipants, event.CreatorID,
 	).Scan(&id)
-	metrics.DatabaseQueriesTotal.With(prometheus.Labels{"operation": "create", "entity": "event"}).Inc()
 	return id, err
 }
 
@@ -61,7 +58,6 @@ func (r *EventPostgres) GetByID(ctx context.Context, id int64) (entity.Event, er
 	var event entity.Event
 	query := "SELECT * FROM events WHERE id = $1"
 	err := r.db.GetContext(ctx, &event, query, id)
-	metrics.DatabaseQueriesTotal.With(prometheus.Labels{"operation": "read", "entity": "event"}).Inc()
 	return event, err
 }
 
@@ -107,7 +103,6 @@ func (r *EventPostgres) List(ctx context.Context, filter EventFilter) ([]entity.
 	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)-1, len(args))
 
 	err := r.db.SelectContext(ctx, &events, query, args...)
-	metrics.DatabaseQueriesTotal.With(prometheus.Labels{"operation": "read", "entity": "event_list"}).Inc()
 	return events, err
 }
 
@@ -118,13 +113,11 @@ func (r *EventPostgres) Update(ctx context.Context, event entity.Event) error {
 		event.Title, event.Description, event.Date,
 		event.Location, event.MaxParticipants, event.ID,
 	)
-	metrics.DatabaseQueriesTotal.With(prometheus.Labels{"operation": "update", "entity": "event"}).Inc()
 	return err
 }
 
 func (r *EventPostgres) Delete(ctx context.Context, id int64) error {
 	query := "DELETE FROM events WHERE id = $1"
 	_, err := r.db.ExecContext(ctx, query, id)
-	metrics.DatabaseQueriesTotal.With(prometheus.Labels{"operation": "delete", "entity": "event"}).Inc()
 	return err
 }
