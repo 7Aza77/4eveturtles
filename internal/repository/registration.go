@@ -22,7 +22,6 @@ func NewRegistrationPostgres(db *sqlx.DB) *RegistrationPostgres {
 }
 
 func (r *RegistrationPostgres) Register(ctx context.Context, userId, eventId int64) error {
-	// Используем транзакцию для проверки лимита и вставки (хотя лимит проверим в usecase)
 	query := "INSERT INTO event_registrations (user_id, event_id) VALUES ($1, $2)"
 	_, err := r.db.ExecContext(ctx, query, userId, eventId)
 	return err

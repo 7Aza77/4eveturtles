@@ -1,36 +1,15 @@
 basePath: /
 definitions:
-  entity.Event:
-    properties:
-      created_at:
-        type: string
-      creator_id:
-        type: integer
-      date:
-        type: string
-      description:
-        type: string
-      id:
-        type: integer
-      location:
-        type: string
-      max_participants:
-        type: integer
-      title:
-        type: string
-      updated_at:
-        type: string
-    type: object
   handler.createEventInput:
     properties:
       date:
-        description: В формате RFC3339
         type: string
       description:
         type: string
       location:
         type: string
       max_participants:
+        minimum: 0
         type: integer
       title:
         type: string
@@ -59,41 +38,22 @@ definitions:
     - email
     - password
     type: object
+  response.Response:
+    properties:
+      data: {}
+      error:
+        type: string
+      status:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
-  description: API Server for GoEvent Application
+  description: REST API for the GoEvent student event management platform.
   title: GoEvent API
   version: "1.0"
 paths:
   /api/v1/events:
-    get:
-      consumes:
-      - application/json
-      description: get list of events
-      parameters:
-      - default: 10
-        description: limit
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: offset
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/entity.Event'
-            type: array
-      summary: List Events
-      tags:
-      - events
     post:
       consumes:
       - application/json
@@ -111,10 +71,163 @@ paths:
         "200":
           description: OK
           schema:
-            type: integer
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
       security:
       - ApiKeyAuth: []
       summary: Create Event
+      tags:
+      - events
+  /api/v1/events/:
+    get:
+      consumes:
+      - application/json
+      description: get list of events with optional filtering and pagination
+      parameters:
+      - default: 10
+        description: limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: offset
+        in: query
+        name: offset
+        type: integer
+      - description: sort field
+        enum:
+        - id
+        - title
+        - date
+        - location
+        in: query
+        name: sort_by
+        type: string
+      - description: order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: order
+        type: string
+      - description: filter by title
+        in: query
+        name: title
+        type: string
+      - description: filter by location
+        in: query
+        name: location
+        type: string
+      - description: filter from date (RFC3339)
+        in: query
+        name: from_date
+        type: string
+      - description: filter to date (RFC3339)
+        in: query
+        name: to_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: List Events
+      tags:
+      - events
+  /api/v1/events/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: delete an event (creator only)
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Event
+      tags:
+      - events
+    get:
+      consumes:
+      - application/json
+      description: get a single event by id
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get Event By ID
+      tags:
+      - events
+    put:
+      consumes:
+      - application/json
+      description: update an event (creator only)
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: event info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handler.createEventInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: Update Event
       tags:
       - events
   /auth/sign-in:

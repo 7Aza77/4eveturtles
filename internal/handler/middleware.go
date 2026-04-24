@@ -24,7 +24,7 @@ func (h *Handler) userIdentity(tokenManager auth.TokenManager) gin.HandlerFunc {
 
 		headerParts := strings.Split(header, " ")
 		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid auth header"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid auth header format"})
 			return
 		}
 
@@ -36,7 +36,7 @@ func (h *Handler) userIdentity(tokenManager auth.TokenManager) gin.HandlerFunc {
 
 		userId, role, err := tokenManager.Parse(token)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
 		}
 
@@ -56,7 +56,7 @@ func (h *Handler) roleRestriction(roles ...string) gin.HandlerFunc {
 
 		roleStr, ok := role.(string)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid role type"})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "invalid role type"})
 			return
 		}
 

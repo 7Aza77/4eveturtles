@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"goevent/internal/repository"
+	"time"
 )
 
 type RegistrationUseCase interface {
@@ -24,7 +25,6 @@ func NewRegistration(repo repository.RegistrationRepository, eventRepo repositor
 }
 
 func (u *Registration) Register(ctx context.Context, userId, eventId int64) error {
-	// 1. Проверяем существование события и лимит мест
 	event, err := u.eventRepo.GetByID(ctx, eventId)
 	if err != nil {
 		return errors.New("event not found")
@@ -35,16 +35,23 @@ func (u *Registration) Register(ctx context.Context, userId, eventId int64) erro
 		if err != nil {
 			return err
 		}
-
 		if count >= event.MaxParticipants {
 			return errors.New("event is full")
 		}
 	}
 
-	// 2. Регистрируем
 	return u.repo.Register(ctx, userId, eventId)
 }
 
 func (u *Registration) Cancel(ctx context.Context, userId, eventId int64) error {
+	event, err := u.eventRepo.GetByID(ctx, eventId)
+	if err != nil {
+		return errors.New("event not found")
+	}
+
+	if event.Date.Before(time.Now()) {
+		return errors.New("cannot unregister from a past event")
+	}
+
 	return u.repo.Unregister(ctx, userId, eventId)
 }

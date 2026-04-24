@@ -39,7 +39,7 @@ func (u *Auth) Register(ctx context.Context, email, password string) (int64, err
 	user := entity.User{
 		Email:    email,
 		Password: string(passwordHash),
-		Role:     entity.RoleStudent, // По умолчанию студент
+		Role:     entity.RoleStudent,
 	}
 
 	return u.repo.CreateUser(ctx, user)
@@ -48,7 +48,7 @@ func (u *Auth) Register(ctx context.Context, email, password string) (int64, err
 func (u *Auth) Login(ctx context.Context, email, password string) (string, error) {
 	user, err := u.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		return "", errors.New("user not found or invalid credentials")
+		return "", errors.New("invalid credentials")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {

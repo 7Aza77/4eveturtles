@@ -9,7 +9,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq" // Драйвер для Postgres
+	_ "github.com/lib/pq"
 )
 
 func NewPostgresDB(host, port, user, password, dbname string) (*sqlx.DB, error) {
@@ -19,7 +19,6 @@ func NewPostgresDB(host, port, user, password, dbname string) (*sqlx.DB, error) 
 	var db *sqlx.DB
 	var err error
 
-	// Повторные попытки подключения (для Docker Compose)
 	for i := 0; i < 10; i++ {
 		db, err = sqlx.Open("postgres", dsn)
 		if err != nil {
@@ -36,12 +35,11 @@ func NewPostgresDB(host, port, user, password, dbname string) (*sqlx.DB, error) 
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("не удалось подключиться к БД после 10 попыток: %w", err)
+		return nil, fmt.Errorf("failed to connect to database after 10 attempts: %w", err)
 	}
 
-	// Запуск миграций
 	if err := runMigrations(host, port, user, password, dbname); err != nil {
-		return nil, fmt.Errorf("ошибка запуска миграций: %w", err)
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	return db, nil
