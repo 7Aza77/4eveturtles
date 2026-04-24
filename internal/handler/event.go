@@ -29,6 +29,16 @@ type createEventInput struct {
 	MaxParticipants int    `json:"max_participants"  binding:"min=0"`
 }
 
+// @Summary Create Event
+// @Security ApiKeyAuth
+// @Description create a new event
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param input body createEventInput true "event info"
+// @Success 200 {object} response.Response
+// @Failure 400,401 {object} response.Response
+// @Router /api/v1/events/ [post]
 func (h *EventHandler) create(c *gin.Context) {
 	var input createEventInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -78,6 +88,21 @@ func (h *EventHandler) create(c *gin.Context) {
 	})
 }
 
+// @Summary List Events
+// @Description get list of events with optional filtering and pagination
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param limit query int false "limit" default(10)
+// @Param offset query int false "offset" default(0)
+// @Param sort_by query string false "sort field" Enums(id, title, date, location)
+// @Param order query string false "order" Enums(asc, desc)
+// @Param title query string false "filter by title"
+// @Param location query string false "filter by location"
+// @Param from_date query string false "filter from date (RFC3339)"
+// @Param to_date query string false "filter to date (RFC3339)"
+// @Success 200 {object} response.Response
+// @Router /api/v1/events/ [get]
 func (h *EventHandler) list(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
@@ -109,6 +134,15 @@ func (h *EventHandler) list(c *gin.Context) {
 	})
 }
 
+// @Summary Get Event By ID
+// @Description get a single event by id
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param id path int true "Event ID"
+// @Success 200 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Router /api/v1/events/{id} [get]
 func (h *EventHandler) getByID(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -128,6 +162,17 @@ func (h *EventHandler) getByID(c *gin.Context) {
 	})
 }
 
+// @Summary Update Event
+// @Security ApiKeyAuth
+// @Description update an event (creator only)
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param id path int true "Event ID"
+// @Param input body createEventInput true "event info"
+// @Success 200 {object} response.Response
+// @Failure 400,403 {object} response.Response
+// @Router /api/v1/events/{id} [put]
 func (h *EventHandler) update(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -190,6 +235,16 @@ func (h *EventHandler) update(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OK())
 }
 
+// @Summary Delete Event
+// @Security ApiKeyAuth
+// @Description delete an event (creator only)
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param id path int true "Event ID"
+// @Success 200 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Router /api/v1/events/{id} [delete]
 func (h *EventHandler) delete(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
