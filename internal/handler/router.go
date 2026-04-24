@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 
 	_ "goevent/docs"
@@ -43,6 +44,12 @@ func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
 
+	// Метрики и swagger — до rate limiting
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Глобальные middleware
+	r.Use(MetricsMiddleware())
 	r.Use(h.rateLimit(rdb, 100, time.Minute))
 
 	r.Use(func(c *gin.Context) {
@@ -59,8 +66,6 @@ func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": "pong"})
 	})
-
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	authGroup := r.Group("/auth")
 	{

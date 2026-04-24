@@ -2,6 +2,7 @@ package handler
 
 import (
 	"goevent/internal/entity"
+	"goevent/internal/metrics"
 	"goevent/internal/repository"
 	"goevent/internal/usecase"
 	"goevent/pkg/lib/api/response"
@@ -82,6 +83,7 @@ func (h *EventHandler) create(c *gin.Context) {
 		return
 	}
 
+	metrics.EventsCreatedTotal.Inc()
 	c.JSON(http.StatusOK, response.Response{
 		Status: response.StatusOk,
 		Data:   gin.H{"id": id},
@@ -279,5 +281,6 @@ func (h *EventHandler) delete(c *gin.Context) {
 		return
 	}
 
+	metrics.EventsDeletedTotal.Inc()
 	c.JSON(http.StatusOK, response.OK())
 }
