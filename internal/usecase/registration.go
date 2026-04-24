@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"goevent/internal/repository"
+	"time"
 )
 
 type RegistrationUseCase interface {
@@ -43,5 +44,14 @@ func (u *Registration) Register(ctx context.Context, userId, eventId int64) erro
 }
 
 func (u *Registration) Cancel(ctx context.Context, userId, eventId int64) error {
+	event, err := u.eventRepo.GetByID(ctx, eventId)
+	if err != nil {
+		return errors.New("event not found")
+	}
+
+	if event.Date.Before(time.Now()) {
+		return errors.New("cannot unregister from a past event")
+	}
+
 	return u.repo.Unregister(ctx, userId, eventId)
 }

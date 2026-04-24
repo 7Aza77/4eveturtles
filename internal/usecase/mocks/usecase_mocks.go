@@ -41,13 +41,13 @@ func (m *EventUseCaseMock) List(ctx context.Context, filter repository.EventFilt
 	return args.Get(0).([]entity.Event), args.Error(1)
 }
 
-func (m *EventUseCaseMock) Update(ctx context.Context, userId int64, event entity.Event) error {
-	args := m.Called(ctx, userId, event)
+func (m *EventUseCaseMock) Update(ctx context.Context, userId int64, role string, event entity.Event) error {
+	args := m.Called(ctx, userId, role, event)
 	return args.Error(0)
 }
 
-func (m *EventUseCaseMock) Delete(ctx context.Context, userId int64, eventId int64) error {
-	args := m.Called(ctx, userId, eventId)
+func (m *EventUseCaseMock) Delete(ctx context.Context, userId int64, role string, eventId int64) error {
+	args := m.Called(ctx, userId, role, eventId)
 	return args.Error(0)
 }
 

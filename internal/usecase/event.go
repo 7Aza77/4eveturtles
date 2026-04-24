@@ -16,8 +16,8 @@ type EventUseCase interface {
 	Create(ctx context.Context, event entity.Event) (int64, error)
 	GetByID(ctx context.Context, id int64) (entity.Event, error)
 	List(ctx context.Context, filter repository.EventFilter) ([]entity.Event, error)
-	Update(ctx context.Context, userId int64, event entity.Event) error
-	Delete(ctx context.Context, userId int64, eventId int64) error
+	Update(ctx context.Context, userId int64, role string, event entity.Event) error
+	Delete(ctx context.Context, userId int64, role string, eventId int64) error
 }
 
 type Event struct {
@@ -102,13 +102,13 @@ func (u *Event) List(ctx context.Context, filter repository.EventFilter) ([]enti
 	return events, err
 }
 
-func (u *Event) Update(ctx context.Context, userId int64, event entity.Event) error {
+func (u *Event) Update(ctx context.Context, userId int64, role string, event entity.Event) error {
 	oldEvent, err := u.repo.GetByID(ctx, event.ID)
 	if err != nil {
 		return errors.New("event not found")
 	}
 
-	if oldEvent.CreatorID != userId {
+	if oldEvent.CreatorID != userId && role != string(entity.RoleAdmin) && role != string(entity.RoleModerator) {
 		return errors.New("access denied: only the creator can update the event")
 	}
 
@@ -120,13 +120,13 @@ func (u *Event) Update(ctx context.Context, userId int64, event entity.Event) er
 	return err
 }
 
-func (u *Event) Delete(ctx context.Context, userId int64, eventId int64) error {
+func (u *Event) Delete(ctx context.Context, userId int64, role string, eventId int64) error {
 	oldEvent, err := u.repo.GetByID(ctx, eventId)
 	if err != nil {
 		return errors.New("event not found")
 	}
 
-	if oldEvent.CreatorID != userId {
+	if oldEvent.CreatorID != userId && role != string(entity.RoleAdmin) && role != string(entity.RoleModerator) {
 		return errors.New("access denied: only the creator can delete the event")
 	}
 
