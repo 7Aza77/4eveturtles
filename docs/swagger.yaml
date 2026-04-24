@@ -1,14 +1,6 @@
 basePath: /
 definitions:
-  goevent_pkg_lib_api_response.Response:
-    properties:
-      data: {}
-      error:
-        type: string
-      status:
-        type: string
-    type: object
-  internal_handler.createEventInput:
+  handler.createEventInput:
     properties:
       date:
         type: string
@@ -25,7 +17,7 @@ definitions:
     - date
     - title
     type: object
-  internal_handler.signInInput:
+  handler.signInInput:
     properties:
       email:
         type: string
@@ -35,7 +27,7 @@ definitions:
     - email
     - password
     type: object
-  internal_handler.signUpInput:
+  handler.signUpInput:
     properties:
       email:
         type: string
@@ -46,6 +38,14 @@ definitions:
     - email
     - password
     type: object
+  response.Response:
+    properties:
+      data: {}
+      error:
+        type: string
+      status:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -53,7 +53,7 @@ info:
   title: GoEvent API
   version: "1.0"
 paths:
-  /api/v1/events/:
+  /api/v1/events:
     get:
       consumes:
       - application/json
@@ -107,7 +107,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
       summary: List Events
       tags:
       - events
@@ -121,24 +121,24 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/internal_handler.createEventInput'
+          $ref: '#/definitions/handler.createEventInput'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
-      - ApiKeyAuth: []
+      - Bearer: []
       summary: Create Event
       tags:
       - events
@@ -159,13 +159,13 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
-      - ApiKeyAuth: []
+      - Bearer: []
       summary: Delete Event
       tags:
       - events
@@ -185,11 +185,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
       summary: Get Event By ID
       tags:
       - events
@@ -208,24 +208,24 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/internal_handler.createEventInput'
+          $ref: '#/definitions/handler.createEventInput'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
-      - ApiKeyAuth: []
+      - Bearer: []
       summary: Update Event
       tags:
       - events
@@ -245,17 +245,17 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
-      - ApiKeyAuth: []
+      - Bearer: []
       summary: Register for Event
       tags:
       - events
@@ -275,15 +275,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/goevent_pkg_lib_api_response.Response'
+            $ref: '#/definitions/response.Response'
       security:
       - ApiKeyAuth: []
       summary: Cancel Event Registration
@@ -301,7 +301,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/internal_handler.signInInput'
+          $ref: '#/definitions/handler.signInInput'
       produces:
       - application/json
       responses:
@@ -324,7 +324,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/internal_handler.signUpInput'
+          $ref: '#/definitions/handler.signUpInput'
       produces:
       - application/json
       responses:
@@ -335,9 +335,4 @@ paths:
       summary: Sign Up
       tags:
       - auth
-securityDefinitions:
-  ApiKeyAuth:
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"

@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/events/": {
+        "/api/v1/events": {
             "get": {
                 "description": "get list of events with optional filtering and pagination",
                 "consumes": [
@@ -94,7 +94,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -102,7 +102,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "create a new event",
@@ -123,7 +123,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.createEventInput"
+                            "$ref": "#/definitions/handler.createEventInput"
                         }
                     }
                 ],
@@ -131,19 +131,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -175,13 +175,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -189,7 +189,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "update an event (creator only)",
@@ -217,7 +217,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.createEventInput"
+                            "$ref": "#/definitions/handler.createEventInput"
                         }
                     }
                 ],
@@ -225,19 +225,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -245,7 +245,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "delete an event (creator only)",
@@ -272,13 +272,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -288,7 +288,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "register user for an event",
@@ -313,19 +313,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -360,19 +360,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/goevent_pkg_lib_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -399,7 +399,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.signInInput"
+                            "$ref": "#/definitions/handler.signInInput"
                         }
                     }
                 ],
@@ -434,7 +434,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.signUpInput"
+                            "$ref": "#/definitions/handler.signUpInput"
                         }
                     }
                 ],
@@ -450,19 +450,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "goevent_pkg_lib_api_response.Response": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "error": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handler.createEventInput": {
+        "handler.createEventInput": {
             "type": "object",
             "required": [
                 "date",
@@ -487,7 +475,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.signInInput": {
+        "handler.signInInput": {
             "type": "object",
             "required": [
                 "email",
@@ -502,7 +490,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.signUpInput": {
+        "handler.signUpInput": {
             "type": "object",
             "required": [
                 "email",
@@ -517,13 +505,18 @@ const docTemplate = `{
                     "minLength": 6
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "ApiKeyAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
+        },
+        "response.Response": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
         }
     }
 }`

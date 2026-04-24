@@ -75,14 +75,14 @@ func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
 
 	events := r.Group("/api/v1/events")
 	{
-		events.GET("/", h.eventHandler.list)
+		events.GET("", h.eventHandler.list)
 		events.GET("/:id", h.eventHandler.getByID)
 
-		authorized := events.Group("/")
+		authorized := events.Group("")
 		authorized.Use(h.userIdentity(h.tokenManager))
 		{
 			authorized.POST(
-				"/",
+				"",
 				h.roleRestriction(string(entity.RoleAdmin), string(entity.RoleModerator)),
 				h.eventHandler.create,
 			)

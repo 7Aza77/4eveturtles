@@ -31,7 +31,7 @@ type createEventInput struct {
 }
 
 // @Summary Create Event
-// @Security ApiKeyAuth
+// @Security Bearer
 // @Description create a new event
 // @Tags events
 // @Accept json
@@ -39,7 +39,7 @@ type createEventInput struct {
 // @Param input body createEventInput true "event info"
 // @Success 200 {object} response.Response
 // @Failure 400,401 {object} response.Response
-// @Router /api/v1/events/ [post]
+// @Router /api/v1/events [post]
 func (h *EventHandler) create(c *gin.Context) {
 	var input createEventInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -104,7 +104,7 @@ func (h *EventHandler) create(c *gin.Context) {
 // @Param from_date query string false "filter from date (RFC3339)"
 // @Param to_date query string false "filter to date (RFC3339)"
 // @Success 200 {object} response.Response
-// @Router /api/v1/events/ [get]
+// @Router /api/v1/events [get]
 func (h *EventHandler) list(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
@@ -165,7 +165,7 @@ func (h *EventHandler) getByID(c *gin.Context) {
 }
 
 // @Summary Update Event
-// @Security ApiKeyAuth
+// @Security Bearer
 // @Description update an event (creator only)
 // @Tags events
 // @Accept json
@@ -238,7 +238,7 @@ func (h *EventHandler) update(c *gin.Context) {
 }
 
 // @Summary Delete Event
-// @Security ApiKeyAuth
+// @Security Bearer
 // @Description delete an event (creator only)
 // @Tags events
 // @Accept json

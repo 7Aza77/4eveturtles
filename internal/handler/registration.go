@@ -20,7 +20,7 @@ func NewRegistrationHandler(useCase usecase.RegistrationUseCase) *RegistrationHa
 }
 
 // @Summary Register for Event
-// @Security ApiKeyAuth
+// @Security Bearer
 // @Description register user for an event
 // @Tags events
 // @ID register-event
