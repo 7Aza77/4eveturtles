@@ -43,12 +43,6 @@ func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
-
-	// Метрики и swagger — до rate limiting
-	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	// Глобальные middleware
 	r.Use(MetricsMiddleware())
 	r.Use(h.rateLimit(rdb, 100, time.Minute))
 
@@ -63,6 +57,9 @@ func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
 		c.Next()
 	})
 
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": "pong"})
 	})
@@ -73,10 +70,17 @@ func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
 		authGroup.POST("/sign-in", h.authHandler.signIn)
 	}
 
+	userGroup := r.Group("/api/v1/users")
+	userGroup.Use(h.userIdentity(h.tokenManager))
+	{
+		userGroup.GET("/me", h.authHandler.me)
+	}
+
 	events := r.Group("/api/v1/events")
 	{
 		events.GET("", h.eventHandler.list)
 		events.GET("/:id", h.eventHandler.getByID)
+		events.GET("/:id/participants", h.registrationHandler.participants)
 
 		authorized := events.Group("")
 		authorized.Use(h.userIdentity(h.tokenManager))

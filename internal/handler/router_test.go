@@ -34,7 +34,7 @@ func TestEventsListRoute(t *testing.T) {
 			Return([]entity.Event{}, nil).Once()
 
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/api/v1/events/", nil)
+		req, _ := http.NewRequest("GET", "/api/v1/events", nil)
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -46,7 +46,7 @@ func TestEventsListRoute(t *testing.T) {
 			Return([]entity.Event{}, context.DeadlineExceeded).Once()
 
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/api/v1/events/", nil)
+		req, _ := http.NewRequest("GET", "/api/v1/events", nil)
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -71,7 +71,7 @@ func TestCreateEventRequiresAuth(t *testing.T) {
 	router := h.InitRouter(nil)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/api/v1/events/", nil)
+	req, _ := http.NewRequest("POST", "/api/v1/events", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)

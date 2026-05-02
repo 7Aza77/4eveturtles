@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"goevent/internal/repository"
-	"time"
 )
 
 type RegistrationUseCase interface {
 	Register(ctx context.Context, userId, eventId int64) error
 	Cancel(ctx context.Context, userId, eventId int64) error
+	GetParticipants(ctx context.Context, eventId int64) ([]int64, error)
 }
 
 type Registration struct {
@@ -30,6 +30,14 @@ func (u *Registration) Register(ctx context.Context, userId, eventId int64) erro
 		return errors.New("event not found")
 	}
 
+	already, err := u.repo.IsRegistered(ctx, userId, eventId)
+	if err != nil {
+		return err
+	}
+	if already {
+		return errors.New("you are already registered for this event")
+	}
+
 	if event.MaxParticipants > 0 {
 		count, err := u.repo.GetParticipantsCount(ctx, eventId)
 		if err != nil {
@@ -44,14 +52,13 @@ func (u *Registration) Register(ctx context.Context, userId, eventId int64) erro
 }
 
 func (u *Registration) Cancel(ctx context.Context, userId, eventId int64) error {
-	event, err := u.eventRepo.GetByID(ctx, eventId)
-	if err != nil {
-		return errors.New("event not found")
-	}
-
-	if event.Date.Before(time.Now()) {
-		return errors.New("cannot unregister from a past event")
-	}
-
 	return u.repo.Unregister(ctx, userId, eventId)
+}
+
+func (u *Registration) GetParticipants(ctx context.Context, eventId int64) ([]int64, error) {
+	_, err := u.eventRepo.GetByID(ctx, eventId)
+	if err != nil {
+		return nil, errors.New("event not found")
+	}
+	return u.repo.GetParticipants(ctx, eventId)
 }

@@ -14,6 +14,7 @@ import (
 type AuthUseCase interface {
 	Register(ctx context.Context, email, password string) (int64, error)
 	Login(ctx context.Context, email, password string) (string, error)
+	Me(ctx context.Context, userId int64) (entity.User, error)
 }
 
 type Auth struct {
@@ -56,4 +57,8 @@ func (u *Auth) Login(ctx context.Context, email, password string) (string, error
 	}
 
 	return u.tokenManager.NewJWT(user.ID, string(user.Role), u.tokenTTL)
+}
+
+func (u *Auth) Me(ctx context.Context, userId int64) (entity.User, error) {
+	return u.repo.GetUserByID(ctx, userId)
 }

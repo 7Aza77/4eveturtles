@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoEvent – Мероприятия</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0f1e;
+      --surface: #111827;
+      --surface2: #1a2235;
+      --border: #1f2d45;
+      --accent: #10b981;
+      --accent2: #6366f1;
+      --text: #f1f5f9;
+      --muted: #64748b;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* NAV */
+    nav { background: rgba(17,24,39,.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .logo { font-weight: 800; font-size: 1.3rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
+    .nav-links { display: flex; gap: 1rem; align-items: center; }
+    .nav-btn { background: none; border: 1px solid var(--border); color: var(--text); padding: .45rem 1rem; border-radius: 8px; cursor: pointer; font-size: .9rem; transition: all .2s; }
+    .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .nav-btn.primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+    .nav-btn.primary:hover { background: #0ea371; }
+    #userBadge { font-size: .85rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 20px; padding: .25rem .75rem; }
+
+    /* TOAST */
+    #toast { position: fixed; bottom: 2rem; right: 2rem; z-index: 999; display: flex; flex-direction: column; gap: .5rem; }
+    .toast-item { background: var(--surface2); border: 1px solid var(--border); border-left: 4px solid var(--accent); padding: .8rem 1.2rem; border-radius: 10px; font-size: .9rem; animation: slideIn .3s ease; max-width: 320px; }
+    .toast-item.err { border-left-color: var(--danger); }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* PAGES */
+    .page { display: none; padding: 2rem; max-width: 1200px; margin: 0 auto; animation: fadeIn .35s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* AUTH PAGE */
+    .auth-wrap { display: flex; justify-content: center; align-items: center; min-height: calc(100vh - 60px); }
+    .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 420px; }
+    .auth-card h2 { font-size: 1.6rem; margin-bottom: 1.5rem; text-align: center; }
+    .tabs { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 1.5rem; }
+    .tab { flex: 1; padding: .7rem; text-align: center; cursor: pointer; background: transparent; color: var(--muted); border: none; font-family: inherit; font-size: .95rem; transition: all .2s; }
+    .tab.active { background: var(--surface2); color: var(--text); font-weight: 600; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .4rem; }
+    input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .75rem 1rem; color: var(--text); font-size: .95rem; font-family: inherit; outline: none; transition: border-color .2s; }
+    input:focus { border-color: var(--accent); }
+    .btn { width: 100%; padding: .8rem; border-radius: 10px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #0ea371; transform: translateY(-1px); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent2); }
+
+    /* EVENTS PAGE */
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 2rem; font-weight: 800; margin-bottom: .5rem; }
+    .page-header p { color: var(--muted); }
+    .filters { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .filters input, .filters select { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .6rem 1rem; color: var(--text); font-family: inherit; font-size: .9rem; outline: none; flex: 1; min-width: 160px; transition: border-color .2s; }
+    .filters input:focus, .filters select:focus { border-color: var(--accent); }
+    .filters select option { background: var(--surface); }
+    .filter-btn { background: var(--accent); color: #000; border: none; border-radius: 10px; padding: .6rem 1.3rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .2s; white-space: nowrap; }
+    .filter-btn:hover { background: #0ea371; }
+    .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+    .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; cursor: pointer; transition: all .25s; position: relative; overflow: hidden; }
+    .event-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transform: scaleX(0); transform-origin: left; transition: transform .3s; }
+    .event-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(16,185,129,.15); }
+    .event-card:hover::before { transform: scaleX(1); }
+    .event-title { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; }
+    .event-meta { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+    .badge { font-size: .75rem; padding: .25rem .6rem; border-radius: 20px; font-weight: 500; }
+    .badge-date { background: rgba(99,102,241,.15); color: var(--accent2); }
+    .badge-loc { background: rgba(16,185,129,.15); color: var(--accent); }
+    .badge-cap { background: rgba(245,158,11,.15); color: var(--warn); }
+    .event-desc { font-size: .88rem; color: var(--muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .empty-state { text-align: center; padding: 5rem 2rem; color: var(--muted); }
+    .empty-state .icon { font-size: 4rem; margin-bottom: 1rem; }
+    .loading { text-align: center; padding: 3rem; color: var(--muted); }
+    .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* DETAIL PAGE */
+    .back-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .9rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: .4rem; font-family: inherit; transition: color .2s; }
+    .back-btn:hover { color: var(--text); }
+    .detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; }
+    .detail-title { font-size: 2rem; font-weight: 800; margin-bottom: 1rem; }
+    .detail-meta { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.5rem; }
+    .detail-desc { color: var(--muted); line-height: 1.7; margin-bottom: 2rem; font-size: .95rem; }
+    .detail-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .detail-actions .btn { width: auto; padding: .75rem 2rem; }
+    .participants-section { margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+    .participants-section h3 { font-size: 1rem; font-weight: 600; margin-bottom: .75rem; color: var(--muted); }
+    .participants-count { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+
+    /* PAGINATION */
+    .pagination { display: flex; justify-content: center; gap: .5rem; margin-top: 2rem; }
+    .page-num { background: var(--surface); border: 1px solid var(--border); color: var(--text); width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: .9rem; transition: all .2s; }
+    .page-num:hover, .page-num.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo" onclick="showPage('events')">⚡ GoEvent</span>
+  <div class="nav-links" id="navLinks">
+    <button class="nav-btn" onclick="showPage('events')">Мероприятия</button>
+    <span id="userBadge" style="display:none"></span>
+    <button class="nav-btn" id="logoutBtn" style="display:none" onclick="logout()">Выйти</button>
+    <button class="nav-btn primary" id="loginNavBtn" onclick="showPage('auth')">Войти</button>
+  </div>
+</nav>
+
+<div id="toast"></div>
+
+<!-- AUTH PAGE -->
+<div class="page active" id="page-auth">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h2>🎓 GoEvent</h2>
+      <div class="tabs">
+        <button class="tab active" id="tabLogin" onclick="switchTab('login')">Войти</button>
+        <button class="tab" id="tabRegister" onclick="switchTab('register')">Регистрация</button>
+      </div>
+      <div id="loginForm">
+        <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="student@uni.kz" /></div>
+        <div class="form-group"><label>Пароль</label><input type="password" id="loginPassword" placeholder="••••••" /></div>
+        <button class="btn btn-primary" onclick="doLogin()">Войти</button>
+      </div>
+      <div id="registerForm" style="display:none">
+        <div class="form-group"><label>Email</label><input type="email" id="regEmail" placeholder="student@uni.kz" /></div>
+        <div class="form-group"><label>Пароль (мин. 6 символов)</label><input type="password" id="regPassword" placeholder="••••••" /></div>
+        <button class="btn btn-primary" onclick="doRegister()">Зарегистрироваться</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EVENTS LIST PAGE -->
+<div class="page" id="page-events">
+  <div class="page-header">
+    <h1>📅 Мероприятия</h1>
+    <p>Найдите и запишитесь на студенческие события</p>
+  </div>
+  <div class="filters">
+    <input type="text" id="filterTitle" placeholder="🔍 Название..." />
+    <input type="text" id="filterLocation" placeholder="📍 Место..." />
+    <select id="filterSort">
+      <option value="date">По дате</option>
+      <option value="title">По названию</option>
+      <option value="id">По ID</option>
+    </select>
+    <select id="filterOrder">
+      <option value="asc">По возрастанию</option>
+      <option value="desc">По убыванию</option>
+    </select>
+    <button class="filter-btn" onclick="loadEvents(1)">Найти</button>
+    <button class="filter-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="clearFilters()">Сбросить</button>
+  </div>
+  <div id="eventsContainer"><div class="loading"><div class="spinner"></div></div></div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- EVENT DETAIL PAGE -->
+<div class="page" id="page-detail">
+  <button class="back-btn" onclick="showPage('events')">← Назад к списку</button>
+  <div id="detailContainer"></div>
+</div>
+
+<script>
+const API = 'http://localhost:8080';
+let currentPage = 1;
+const LIMIT = 9;
+let totalEvents = 0;
+
+// ─── Utilities ───────────────────────────────────────────────────
+function token() { return localStorage.getItem('token'); }
+function getUser() { try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; } }
+
+function toast(msg, isErr = false) {
+  const el = document.createElement('div');
+  el.className = 'toast-item' + (isErr ? ' err' : '');
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token()) headers['Authorization'] = 'Bearer ' + token();
+  const res = await fetch(API + path, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+// ─── Navigation ──────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'events') loadEvents(currentPage);
+}
+
+function updateNav() {
+  const u = getUser();
+  document.getElementById('loginNavBtn').style.display = u ? 'none' : '';
+  document.getElementById('logoutBtn').style.display = u ? '' : 'none';
+  const badge = document.getElementById('userBadge');
+  if (u) { badge.textContent = u.email + ' · ' + u.role; badge.style.display = ''; }
+  else badge.style.display = 'none';
+}
+
+function logout() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  updateNav();
+  showPage('auth');
+  toast('Вы вышли из аккаунта');
+}
+
+// ─── Auth ────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('loginForm').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('tabLogin').className = 'tab' + (tab === 'login' ? ' active' : '');
+  document.getElementById('tabRegister').className = 'tab' + (tab === 'register' ? ' active' : '');
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return toast('Заполните все поля', true);
+  const { ok, data } = await api('/auth/sign-in', { method: 'POST', body: JSON.stringify({ email, password }) });
+  if (!ok) return toast(data.error || 'Ошибка входа', true);
+  localStorage.setItem('token', data.data.token);
+  await fetchMe();
+  updateNav();
+  showPage('events');
+  toast('Добро пожаловать!');
+}
+
+async function doRegister() {
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  if (!email || !password) return toast('Заполните все поля', true);
+  const { ok, data } = await api('/auth/sign-up', { method: 'POST', body: JSON.stringify({ email, password }) });
+  if (!ok) return toast(data.error || 'Ошибка регистрации', true);
+  toast('Аккаунт создан! Войдите.');
+  switchTab('login');
+  document.getElementById('loginEmail').value = email;
+}
+
+async function fetchMe() {
+  const { ok, data } = await api('/api/v1/users/me');
+  if (ok) localStorage.setItem('user', JSON.stringify(data.data));
+}
+
+// ─── Events ──────────────────────────────────────────────────────
+async function loadEvents(page = 1) {
+  currentPage = page;
+  const container = document.getElementById('eventsContainer');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  const title = document.getElementById('filterTitle')?.value.trim() || '';
+  const location = document.getElementById('filterLocation')?.value.trim() || '';
+  const sortBy = document.getElementById('filterSort')?.value || 'date';
+  const order = document.getElementById('filterOrder')?.value || 'asc';
+
+  const params = new URLSearchParams({ limit: LIMIT, offset: (page - 1) * LIMIT, sort_by: sortBy, order });
+  if (title) params.set('title', title);
+  if (location) params.set('location', location);
+
+  const { ok, data } = await api('/api/v1/events?' + params);
+  if (!ok) { container.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Не удалось загрузить мероприятия</p></div>'; return; }
+
+  const events = data.data || [];
+  if (!events.length) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Мероприятий не найдено</p></div>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = '<div class="events-grid">' + events.map(e => `
+    <div class="event-card" onclick="showDetail(${e.id})">
+      <div class="event-title">${e.title}</div>
+      <div class="event-meta">
+        <span class="badge badge-date">📅 ${formatDate(e.date)}</span>
+        ${e.location ? `<span class="badge badge-loc">📍 ${e.location}</span>` : ''}
+        ${e.max_participants > 0 ? `<span class="badge badge-cap">👥 макс. ${e.max_participants}</span>` : ''}
+      </div>
+      <div class="event-desc">${e.description || 'Описание отсутствует'}</div>
+    </div>`).join('') + '</div>';
+
+  renderPagination(events.length);
+}
+
+function renderPagination(count) {
+  const pag = document.getElementById('pagination');
+  const hasMore = count === LIMIT;
+  const hasPrev = currentPage > 1;
+  if (!hasPrev && !hasMore) { pag.innerHTML = ''; return; }
+  let html = '';
+  if (hasPrev) html += `<button class="page-num" onclick="loadEvents(${currentPage - 1})">‹</button>`;
+  html += `<button class="page-num active">${currentPage}</button>`;
+  if (hasMore) html += `<button class="page-num" onclick="loadEvents(${currentPage + 1})">›</button>`;
+  pag.innerHTML = html;
+}
+
+function clearFilters() {
+  document.getElementById('filterTitle').value = '';
+  document.getElementById('filterLocation').value = '';
+  document.getElementById('filterSort').value = 'date';
+  document.getElementById('filterOrder').value = 'asc';
+  loadEvents(1);
+}
+
+// ─── Detail ──────────────────────────────────────────────────────
+async function showDetail(id) {
+  showPage('detail');
+  const c = document.getElementById('detailContainer');
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  const [{ ok, data }, pRes] = await Promise.all([
+    api('/api/v1/events/' + id),
+    api('/api/v1/events/' + id + '/participants')
+  ]);
+
+  if (!ok) { c.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Мероприятие не найдено</p></div>'; return; }
+
+  const e = data.data;
+  const participantCount = pRes.ok ? (pRes.data.data?.count ?? 0) : 0;
+  const user = getUser();
+  const isFull = e.max_participants > 0 && participantCount >= e.max_participants;
+
+  c.innerHTML = `
+    <div class="detail-card">
+      <div class="detail-title">${e.title}</div>
+      <div class="detail-meta">
+        <span class="badge badge-date">📅 ${formatDate(e.date)}</span>
+        ${e.location ? `<span class="badge badge-loc">📍 ${e.location}</span>` : ''}
+        ${e.max_participants > 0 ? `<span class="badge badge-cap">👥 макс. ${e.max_participants}</span>` : '<span class="badge badge-loc">👥 без ограничений</span>'}
+      </div>
+      <div class="detail-desc">${e.description || 'Описание не указано.'}</div>
+      <div class="detail-actions">
+        ${user ? (isFull
+          ? `<button class="btn btn-secondary" disabled>❌ Мест нет</button>`
+          : `<button class="btn btn-primary" onclick="registerEvent(${e.id})">✅ Записаться</button>
+             <button class="btn btn-secondary" onclick="cancelEvent(${e.id})">Отменить запись</button>`)
+          : `<button class="btn btn-secondary" onclick="showPage('auth')">🔐 Войдите чтобы записаться</button>`}
+      </div>
+      <div class="participants-section">
+        <h3>Участники</h3>
+        <div class="participants-count">${participantCount} ${declension(participantCount, ['человек', 'человека', 'человек'])}${e.max_participants > 0 ? ' / ' + e.max_participants : ''}</div>
+      </div>
+    </div>`;
+}
+
+function declension(n, forms) {
+  const abs = Math.abs(n) % 100;
+  const rem = abs % 10;
+  if (abs > 10 && abs < 20) return n + ' ' + forms[2];
+  if (rem > 1 && rem < 5) return n + ' ' + forms[1];
+  if (rem === 1) return n + ' ' + forms[0];
+  return n + ' ' + forms[2];
+}
+
+async function registerEvent(id) {
+  if (!token()) return showPage('auth');
+  const { ok, data } = await api('/api/v1/events/' + id + '/register', { method: 'POST' });
+  if (!ok) return toast(data.error || 'Ошибка', true);
+  toast('Вы успешно записались!');
+  showDetail(id);
+}
+
+async function cancelEvent(id) {
+  if (!token()) return showPage('auth');
+  const { ok, data } = await api('/api/v1/events/' + id + '/unregister', { method: 'DELETE' });
+  if (!ok) return toast(data.error || 'Ошибка', true);
+  toast('Запись отменена');
+  showDetail(id);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────
+(async () => {
+  if (token()) {
+    await fetchMe();
+    updateNav();
+    showPage('events');
+  } else {
+    updateNav();
+    showPage('auth');
+  }
+})();
+</script>
+</body>
+</html>

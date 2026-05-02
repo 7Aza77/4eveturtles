@@ -22,6 +22,11 @@ func (m *AuthUseCaseMock) Login(ctx context.Context, email, password string) (st
 	return args.String(0), args.Error(1)
 }
 
+func (m *AuthUseCaseMock) Me(ctx context.Context, userId int64) (entity.User, error) {
+	args := m.Called(ctx, userId)
+	return args.Get(0).(entity.User), args.Error(1)
+}
+
 type EventUseCaseMock struct {
 	mock.Mock
 }
@@ -63,4 +68,9 @@ func (m *RegistrationUseCaseMock) Register(ctx context.Context, userId, eventId 
 func (m *RegistrationUseCaseMock) Cancel(ctx context.Context, userId, eventId int64) error {
 	args := m.Called(ctx, userId, eventId)
 	return args.Error(0)
+}
+
+func (m *RegistrationUseCaseMock) GetParticipants(ctx context.Context, eventId int64) ([]int64, error) {
+	args := m.Called(ctx, eventId)
+	return args.Get(0).([]int64), args.Error(1)
 }

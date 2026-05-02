@@ -11,6 +11,8 @@ type RegistrationRepository interface {
 	Register(ctx context.Context, userId, eventId int64) error
 	Unregister(ctx context.Context, userId, eventId int64) error
 	GetParticipantsCount(ctx context.Context, eventId int64) (int, error)
+	IsRegistered(ctx context.Context, userId, eventId int64) (bool, error)
+	GetParticipants(ctx context.Context, eventId int64) ([]int64, error)
 }
 
 type RegistrationPostgres struct {
@@ -45,4 +47,18 @@ func (r *RegistrationPostgres) GetParticipantsCount(ctx context.Context, eventId
 	query := "SELECT COUNT(*) FROM event_registrations WHERE event_id = $1"
 	err := r.db.GetContext(ctx, &count, query, eventId)
 	return count, err
+}
+
+func (r *RegistrationPostgres) IsRegistered(ctx context.Context, userId, eventId int64) (bool, error) {
+	var count int
+	query := "SELECT COUNT(*) FROM event_registrations WHERE user_id = $1 AND event_id = $2"
+	err := r.db.GetContext(ctx, &count, query, userId, eventId)
+	return count > 0, err
+}
+
+func (r *RegistrationPostgres) GetParticipants(ctx context.Context, eventId int64) ([]int64, error) {
+	var ids []int64
+	query := "SELECT user_id FROM event_registrations WHERE event_id = $1 ORDER BY registered_at ASC"
+	err := r.db.SelectContext(ctx, &ids, query, eventId)
+	return ids, err
 }

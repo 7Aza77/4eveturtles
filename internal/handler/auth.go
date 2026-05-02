@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"goevent/internal/metrics"
 	"goevent/internal/usecase"
 	"goevent/pkg/lib/api/response"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -23,15 +23,6 @@ type signUpInput struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-// @Summary Sign Up
-// @Description create account
-// @Tags auth
-// @ID create-account
-// @Accept json
-// @Produce json
-// @Param input body signUpInput true "account info"
-// @Success 200 {integer} integer 1
-// @Router /auth/sign-up [post]
 func (h *AuthHandler) signUp(c *gin.Context) {
 	var input signUpInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -45,7 +36,7 @@ func (h *AuthHandler) signUp(c *gin.Context) {
 
 	id, err := h.useCase.Register(c.Request.Context(), input.Email, input.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Error("failed to create user"))
+		c.JSON(http.StatusConflict, response.Error("user with this email already exists"))
 		return
 	}
 
@@ -60,15 +51,6 @@ type signInInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// @Summary Sign In
-// @Description login
-// @Tags auth
-// @ID login
-// @Accept json
-// @Produce json
-// @Param input body signInInput true "credentials"
-// @Success 200 {string} string "token"
-// @Router /auth/sign-in [post]
 func (h *AuthHandler) signIn(c *gin.Context) {
 	var input signInInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -86,9 +68,44 @@ func (h *AuthHandler) signIn(c *gin.Context) {
 		return
 	}
 
-	metrics.ActiveUsersTotal.Inc()
 	c.JSON(http.StatusOK, response.Response{
 		Status: response.StatusOk,
 		Data:   gin.H{"token": token},
 	})
+}
+
+func (h *AuthHandler) me(c *gin.Context) {
+	userIdRaw, ok := c.Get(userCtx)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Error("user not found"))
+		return
+	}
+
+	userId, ok := userIdRaw.(int64)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Error("invalid user id"))
+		return
+	}
+
+	user, err := h.useCase.Me(c.Request.Context(), userId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, response.Error("user not found"))
+		return
+	}
+
+	user.Password = ""
+
+	c.JSON(http.StatusOK, response.Response{
+		Status: response.StatusOk,
+		Data:   user,
+	})
+}
+
+func (h *AuthHandler) getParticipantsCount(c *gin.Context) {
+	eventId, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("invalid event id"))
+		return
+	}
+	_ = eventId
 }

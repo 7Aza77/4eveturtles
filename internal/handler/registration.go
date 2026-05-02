@@ -19,16 +19,6 @@ func NewRegistrationHandler(useCase usecase.RegistrationUseCase) *RegistrationHa
 	return &RegistrationHandler{useCase: useCase}
 }
 
-// @Summary Register for Event
-// @Security Bearer
-// @Description register user for an event
-// @Tags events
-// @ID register-event
-// @Produce json
-// @Param id path int true "Event ID"
-// @Success 200 {object} response.Response
-// @Failure 400,401 {object} response.Response
-// @Router /api/v1/events/{id}/register [post]
 func (h *RegistrationHandler) register(c *gin.Context) {
 	eventId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -57,16 +47,6 @@ func (h *RegistrationHandler) register(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OK())
 }
 
-// @Summary Cancel Event Registration
-// @Security ApiKeyAuth
-// @Description unregister user from an event
-// @Tags events
-// @ID cancel-event
-// @Produce json
-// @Param id path int true "Event ID"
-// @Success 200 {object} response.Response
-// @Failure 400,401 {object} response.Response
-// @Router /api/v1/events/{id}/unregister [delete]
 func (h *RegistrationHandler) cancel(c *gin.Context) {
 	eventId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -93,4 +73,23 @@ func (h *RegistrationHandler) cancel(c *gin.Context) {
 
 	metrics.RegistrationsTotal.With(prometheus.Labels{"action": "cancel"}).Inc()
 	c.JSON(http.StatusOK, response.OK())
+}
+
+func (h *RegistrationHandler) participants(c *gin.Context) {
+	eventId, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Error("invalid event id"))
+		return
+	}
+
+	ids, err := h.useCase.GetParticipants(c.Request.Context(), eventId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, response.Error(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Response{
+		Status: response.StatusOk,
+		Data:   gin.H{"event_id": eventId, "participants": ids, "count": len(ids)},
+	})
 }

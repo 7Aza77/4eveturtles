@@ -115,6 +115,16 @@ func (h *EventHandler) list(c *gin.Context) {
 	fromDate := c.Query("from_date")
 	toDate := c.Query("to_date")
 
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
 	events, err := h.useCase.List(c.Request.Context(), repository.EventFilter{
 		Limit:    limit,
 		Offset:   offset,
