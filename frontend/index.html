@@ -105,6 +105,21 @@
     .pagination { display: flex; justify-content: center; gap: .5rem; margin-top: 2rem; }
     .page-num { background: var(--surface); border: 1px solid var(--border); color: var(--text); width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: .9rem; transition: all .2s; }
     .page-num:hover, .page-num.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(6px); z-index: 200; justify-content: center; align-items: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem 2.5rem; width: 100%; max-width: 520px; position: relative; animation: fadeIn .25s ease; }
+    .modal h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .modal-close { position: absolute; top: 1rem; right: 1.2rem; background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; line-height: 1; transition: color .2s; }
+    .modal-close:hover { color: var(--text); }
+    .modal .form-group { margin-bottom: 1rem; }
+    .modal textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .75rem 1rem; color: var(--text); font-size: .95rem; font-family: inherit; outline: none; resize: vertical; min-height: 90px; transition: border-color .2s; }
+    .modal textarea:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: .75rem; margin-top: 1.25rem; }
+    .modal-actions .btn { flex: 1; }
+    .nav-btn.create { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #fff; font-weight: 700; }
+    .nav-btn.create:hover { opacity: .88; transform: translateY(-1px); }
   </style>
 </head>
 <body>
@@ -114,10 +129,43 @@
   <div class="nav-links" id="navLinks">
     <button class="nav-btn" onclick="showPage('events')">Мероприятия</button>
     <span id="userBadge" style="display:none"></span>
+    <button class="nav-btn create" id="createEventNavBtn" style="display:none" onclick="openCreateModal()">+ Создать</button>
     <button class="nav-btn" id="logoutBtn" style="display:none" onclick="logout()">Выйти</button>
     <button class="nav-btn primary" id="loginNavBtn" onclick="showPage('auth')">Войти</button>
   </div>
 </nav>
+
+<!-- CREATE EVENT MODAL -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeCreateModal()">✕</button>
+    <h2>✨ Новое мероприятие</h2>
+    <div class="form-group">
+      <label>Название <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="ceTitle" placeholder="Хакатон по Go..." />
+    </div>
+    <div class="form-group">
+      <label>Описание</label>
+      <textarea id="ceDesc" placeholder="Расскажите о мероприятии..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Дата и время <span style="color:var(--danger)">*</span></label>
+      <input type="datetime-local" id="ceDate" />
+    </div>
+    <div class="form-group">
+      <label>Место проведения</label>
+      <input type="text" id="ceLocation" placeholder="Аудитория 404, корпус А..." />
+    </div>
+    <div class="form-group">
+      <label>Макс. участников <span style="color:var(--muted);font-size:.8rem">(0 = без ограничений)</span></label>
+      <input type="number" id="ceMaxP" placeholder="0" min="0" value="0" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeCreateModal()">Отмена</button>
+      <button class="btn btn-primary" id="ceSubmitBtn" onclick="submitCreateEvent()">Создать</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast"></div>
 
@@ -146,9 +194,13 @@
 
 <!-- EVENTS LIST PAGE -->
 <div class="page" id="page-events">
-  <div class="page-header">
-    <h1>📅 Мероприятия</h1>
-    <p>Найдите и запишитесь на студенческие события</p>
+  <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <h1>📅 Мероприятия</h1>
+      <p>Найдите и запишитесь на студенческие события</p>
+    </div>
+    <button class="nav-btn create" id="createEventPageBtn" style="display:none; margin-top:.25rem" onclick="openCreateModal()">+ Создать мероприятие</button>
+  </div>
   </div>
   <div class="filters">
     <input type="text" id="filterTitle" placeholder="🔍 Название..." />
@@ -212,6 +264,11 @@ function showPage(name) {
   if (name === 'events') loadEvents(currentPage);
 }
 
+function canManageEvents() {
+  const u = getUser();
+  return u && (u.role === 'admin' || u.role === 'moderator');
+}
+
 function updateNav() {
   const u = getUser();
   document.getElementById('loginNavBtn').style.display = u ? 'none' : '';
@@ -219,6 +276,10 @@ function updateNav() {
   const badge = document.getElementById('userBadge');
   if (u) { badge.textContent = u.email + ' · ' + u.role; badge.style.display = ''; }
   else badge.style.display = 'none';
+  const showCreate = canManageEvents() ? '' : 'none';
+  document.getElementById('createEventNavBtn').style.display = showCreate;
+  const pb = document.getElementById('createEventPageBtn');
+  if (pb) pb.style.display = showCreate;
 }
 
 function logout() {
@@ -389,6 +450,62 @@ async function cancelEvent(id) {
   if (!ok) return toast(data.error || 'Ошибка', true);
   toast('Запись отменена');
   showDetail(id);
+}
+
+// ─── Create Event Modal ───────────────────────────────────────────
+function openCreateModal() {
+  if (!canManageEvents()) return toast('Недостаточно прав', true);
+  // default date: tomorrow at noon
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(12, 0, 0, 0);
+  document.getElementById('ceDate').value = d.toISOString().slice(0, 16);
+  document.getElementById('ceTitle').value = '';
+  document.getElementById('ceDesc').value = '';
+  document.getElementById('ceLocation').value = '';
+  document.getElementById('ceMaxP').value = '0';
+  document.getElementById('createModal').classList.add('open');
+  setTimeout(() => document.getElementById('ceTitle').focus(), 100);
+}
+
+function closeCreateModal() {
+  document.getElementById('createModal').classList.remove('open');
+}
+
+// Close modal on overlay click
+document.getElementById('createModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCreateModal();
+});
+
+async function submitCreateEvent() {
+  const title = document.getElementById('ceTitle').value.trim();
+  const description = document.getElementById('ceDesc').value.trim();
+  const dateLocal = document.getElementById('ceDate').value;
+  const location = document.getElementById('ceLocation').value.trim();
+  const maxP = parseInt(document.getElementById('ceMaxP').value) || 0;
+
+  if (!title) return toast('Введите название мероприятия', true);
+  if (!dateLocal) return toast('Укажите дату и время', true);
+
+  // Convert datetime-local to RFC3339
+  const date = new Date(dateLocal).toISOString();
+
+  const btn = document.getElementById('ceSubmitBtn');
+  btn.textContent = 'Создание...';
+  btn.disabled = true;
+
+  const { ok, data } = await api('/api/v1/events', {
+    method: 'POST',
+    body: JSON.stringify({ title, description, date, location, max_participants: maxP })
+  });
+
+  btn.textContent = 'Создать';
+  btn.disabled = false;
+
+  if (!ok) return toast(data.error || 'Ошибка при создании', true);
+  toast('Мероприятие успешно создано! 🎉');
+  closeCreateModal();
+  loadEvents(1);
 }
 
 // ─── Init ─────────────────────────────────────────────────────────
