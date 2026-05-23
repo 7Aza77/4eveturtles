@@ -60,6 +60,8 @@ func (h *Handler) InitRouter(rdb *redis.Client) *gin.Engine {
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	r.StaticFile("/", "./frontend/index.html")
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": "pong"})
 	})

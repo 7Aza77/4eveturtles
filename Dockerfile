@@ -16,6 +16,7 @@ WORKDIR /app
 COPY --from=builder /app/main .
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/config ./config
+COPY --from=builder /app/frontend ./frontend
 
 EXPOSE 8080
 
